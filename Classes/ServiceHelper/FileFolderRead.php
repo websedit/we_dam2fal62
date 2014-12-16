@@ -24,7 +24,7 @@ namespace WE\WeDam2fal62\ServiceHelper;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
- 
+
 /**
  *
  *
@@ -33,7 +33,7 @@ namespace WE\WeDam2fal62\ServiceHelper;
  *
  */
 class FileFolderRead {
-	
+
 	/**
      * function to write a log and save it in a file
 	 *
@@ -43,9 +43,9 @@ class FileFolderRead {
      * @return void
      */
 	public function writeLog($chosenExtension, $errorMessageArray, $logname = '') {
-		
+
 		$folderpath = PATH_site . 'typo3conf/ext/we_dam2fal62/Logs/';
-		
+
 		if ($logname) {
 			$filename = $folderpath . $logname . '.txt';
 		} else {
@@ -56,23 +56,24 @@ class FileFolderRead {
 			// echo 'no handle';
 			exit;
 		}
-		
+
 		foreach ($errorMessageArray as $content) {
 			$actualDate = date('H:i:s Y-m-d') . ';';
 			fwrite($handle, $actualDate);
 			foreach ($content as $contentInner) {
-				$contentInner = $contentInner . ';';			
+				$contentInner = $contentInner . ';';
 				if (!fwrite($handle, $contentInner)) {
 					exit;
 				}
 			}
-			fwrite($handle, '\r\n');
+			fwrite($handle, "\r\n");
 		}
-		
+
 		fclose($handle);
 
+		return $filename;
 	}
-	
+
 	/**
      * function to read a folder
 	 *
@@ -92,6 +93,6 @@ class FileFolderRead {
 			closedir($handle);
 		}
 		return $arr;
-	}	
-	
+	}
+
 }

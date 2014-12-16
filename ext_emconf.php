@@ -15,7 +15,7 @@ $EM_CONF[$_EXTKEY] = array (
 	'description' => 'This extension migrates your Dam-data into FAL.',
 	'category' => 'module',
 	'shy' => false,
-	'version' => '1.0.2',
+	'version' => '1.0.3',
 	'dependencies' => '',
 	'conflicts' => '',
 	'priority' => NULL,
@@ -32,15 +32,15 @@ $EM_CONF[$_EXTKEY] = array (
 	'author_company' => 'websedit AG',
 	'CGLcompliance' => NULL,
 	'CGLcompliance_note' => NULL,
-	'constraints' => 
+	'constraints' =>
 	array (
-		'depends' => 
+		'depends' =>
 		array (
 		),
-		'conflicts' => 
+		'conflicts' =>
 		array (
 		),
-		'suggests' => 
+		'suggests' =>
 		array (
 		),
 	),
