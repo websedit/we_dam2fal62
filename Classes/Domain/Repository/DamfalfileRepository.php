@@ -32,19 +32,25 @@ namespace WE\WeDam2fal62\Domain\Repository;
  */
 class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 
+
+	/**
+	 * @var array
+	 */
+	private $_storages = NULL;
+
 	public function countTableEntries($field, $table, $where, $groupBy = '', $orderBy = '', $limit = '') {
-        $countedEntries = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            'COUNT(' . $field . ') AS countedentry',
-            $table,
-            $where, // where-clause
-            $groupBy, // group by
-            $orderBy, // order by
-            $limit // limit
-        );
-        $numberCounted = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($countedEntries);
-        $number = $numberCounted['countedentry'];
-        return $number;
-    }
+		$countedEntries = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+			'COUNT(' . $field . ') AS countedentry',
+			$table,
+			$where, // where-clause
+			$groupBy, // group by
+			$orderBy, // order by
+			$limit // limit
+		);
+		$numberCounted = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($countedEntries);
+		$number = $numberCounted['countedentry'];
+		return $number;
+	}
 
 	/**
 	 * Migrate Frontend Groups permissions.
@@ -220,7 +226,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		// check if its tt_content, if it is filled with values take them and update
 		if ($tablename == 'tt_content') {
 			$row = $this->selectOneRowQuery('imagecaption, image_link, altText, titleText, sorting', $tablename, "uid='" . $uidForeign . "'", $groupBy = '', $orderBy = '', $limit = '');
-			
+
 			$titleText = $this->sortDescription($row['titleText'], $uidForeign, $txDamMmRefIdent, $tablenames, $uidLocal);
 			$title = $titleText;
 			if($title == ''){$title = NULL;}
@@ -228,23 +234,23 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$imagecaption = $this->sortDescription($row['imagecaption'], $uidForeign, $txDamMmRefIdent, $tablenames, $uidLocal);
 			$description = $imagecaption;
 			if($description == ''){$description = NULL;}
-			
+
 			$alternativeText = $this->sortDescription($row['altText'], $uidForeign, $txDamMmRefIdent, $tablenames, $uidLocal);
 			$alternative = $alternativeText;
 			if($alternative == ''){$alternative = NULL;}
-			
+
 			$linkText = $this->sortDescription($row['image_link'], $uidForeign, $txDamMmRefIdent, $tablenames, $uidLocal);
 			$link = $linkText;
 
 			$sorting = $row['sorting'];
-			
+
 			$row = $this->selectOneRowQuery('sorting_foreign', 'tx_dam_mm_ref', "uid_foreign = '" . $uidForeign . "' AND uid_local = '" . $uidLocal . "' AND ident = '" . $txDamMmRefIdent . "' AND tablenames = '" . $txDamMmRefTablenames . "'", $groupBy = '', $orderBy = '', $limit = '');
 			if ($row['sorting_foreign'] == NULL){$sorting_foreign = 0;}else{$sorting_foreign = $row['sorting_foreign'];}
-			
+
 			if ($sorting == NULL){
 				$sorting = 0;
 			}
-			
+
 			if ($sorting_foreign == NULL){
 				$sorting_foreign = 0;
 			}
@@ -272,15 +278,15 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		$this->updateDAMMMRefTableWithFALId($uidLocal, $uidForeign, $tablename, $ident, $existingSysFileReferenceUid);
 
 	}
-	
+
 	public function sortDescription($imagecaption = '', $uidForeign = 0, $txDamMmRefIdent = '', $tablenames = '', $damUid = 0){
 		if ($imagecaption == NULL){$imagecaption = '';}
 
 		$imagecaptionArray = explode(PHP_EOL, $imagecaption);
-		
+
 		// read tx_dam_mm_ref order by sorting_foreign and take it for positioning, this position is then the right position for the caption array
 		$rowMmRefSorting = $this->getArrayDataFromTable('*', 'tx_dam_mm_ref', "uid_foreign = '" . $uidForeign . "' AND ident = '" . $txDamMmRefIdent . "' AND tablenames = '" . $tablenames . "'", $groupBy = '', $orderBy = 'sorting_foreign ASC', $limit = '');
-		
+
 		$rowMmRefSortingCounter = 0;
 		foreach ($rowMmRefSorting as $rowMmRefSortingKey => $rowMmRefSortingValue){
 			if ($rowMmRefSortingValue['uid_foreign'] == $uidForeign && $rowMmRefSortingValue['uid_local'] == $damUid){
@@ -289,9 +295,9 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			}
 			$rowMmRefSortingCounter++;
 		}
-		
+
 		return $imagecaptionArray[$keyForCaption];
-	
+
 	}
 
 	public function insertSysFileReference($falUid, $uidForeign, $tablenames, $fieldname, $sysLanguageUid, $damUid, $ident, $txDamMmRefTablenames, $txDamMmRefIdent) {
@@ -304,7 +310,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$uidOfParent = 0;
 		}
 
-		// if tt_content, get information from tt_content		
+		// if tt_content, get information from tt_content
 		if ($tablenames == 'tt_content') {
 			$row = $this->selectOneRowQuery('imagecaption, image_link, altText, titleText, sorting', $tablenames, "uid='" . $uidForeign . "'", $groupBy = '', $orderBy = '', $limit = '');
 
@@ -315,16 +321,16 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$imagecaption = $this->sortDescription($row['imagecaption'], $uidForeign, $txDamMmRefIdent, $tablenames, $damUid);
 			$description = $imagecaption;
 			if($description == ''){$description = NULL;}
-			
+
 			$alternativeText = $this->sortDescription($row['altText'], $uidForeign, $txDamMmRefIdent, $tablenames, $damUid);
 			$alternative = $alternativeText;
 			if($alternative == ''){$alternative = NULL;}
-			
+
 			$linkText = $this->sortDescription($row['image_link'], $uidForeign, $txDamMmRefIdent, $tablenames, $damUid);
 			$link = $linkText;
 
 			$sorting = $row['sorting'];
-			
+
 			$row = $this->selectOneRowQuery('sorting_foreign', 'tx_dam_mm_ref', "uid_foreign = '" . $uidForeign . "' AND uid_local = '" . $damUid . "' AND ident = '" . $txDamMmRefIdent . "' AND tablenames = '" . $txDamMmRefTablenames . "'", $groupBy = '', $orderBy = '', $limit = '');
 			if ($row['sorting_foreign'] == NULL){$sorting_foreign = 0;}else{$sorting_foreign = $row['sorting_foreign'];}
 		} else {
@@ -340,15 +346,15 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		if ($sysLanguageUid == NULL){
 			$sysLanguageUid = 0;
 		}
-		
+
 		if ($sorting == NULL){
 			$sorting = 0;
 		}
-		
+
 		if ($sorting_foreign == NULL){
 			$sorting_foreign = 0;
 		}
-		
+
 		$fieldsValuesForFALValues = array(
 			'fieldname' => $fieldname,
 			'deleted' => '0',
@@ -364,17 +370,17 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			'description' => $description,
 			'alternative' => $alternative,
 			'link' => $link,
-			'l10n_parent' => $uidOfParent,     // parent of sys_file_reference
+			'l10n_parent' => $uidOfParent,	 // parent of sys_file_reference
 			'hidden' => '0'
 		);
 
 		// if pages then update the pages table with media = 1
 		if ($tablenames == 'pages'){
-			
+
 			$mediaValue = array(
 				'media' => '1'
 			);
-		
+
 			$GLOBALS['TYPO3_DB']->exec_UPDATEquery (
 				'pages',
 				"uid = '" . $uidForeign . "'",
@@ -382,7 +388,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 				$no_quote_fields = FALSE
 			);
 		}
-		
+
 		$GLOBALS['TYPO3_DB']->exec_INSERTquery (
 			'sys_file_reference',
 			$fieldsValuesForFALValues,
@@ -394,7 +400,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 
 		// update
 		$this->updateDAMMMRefTableWithFALId($damUid, $uidForeign, $tablenames, $ident, $lastInsertedIDForFAL);
-		
+
 	}
 
 	public function updateDAMMMRefTableWithFALId($uidLocal, $uidForeign, $tablenames, $ident, $falUid) {
@@ -430,38 +436,38 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		);
 	}
 
-    public function getTablenamesForMultiselect() {
-        $mmRefTablenames = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            'tablenames',
-            'sys_file_reference',
-            '', // where-clause
-            $groupBy = 'tablenames', // group by
-            $orderBy = '', // order by
-            $limit = '' // limit
-        );
-        $extensionName = array();
-        $counter=0;
-        while($rowMmRefTablenames = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($mmRefTablenames)) {
-            $tablename = $rowMmRefTablenames['tablenames'];
-            if ($tablename != 'tt_content' && $tablename != 'tt_news' && $tablename != '') {
-                $extensionName[$tablename] = $tablename;
-            }
-            $counter++;
-        }
-        $extensionNameUnique = array_unique($extensionName);
+	public function getTablenamesForMultiselect() {
+		$mmRefTablenames = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+			'tablenames',
+			'sys_file_reference',
+			'', // where-clause
+			$groupBy = 'tablenames', // group by
+			$orderBy = '', // order by
+			$limit = '' // limit
+		);
+		$extensionName = array();
+		$counter=0;
+		while($rowMmRefTablenames = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($mmRefTablenames)) {
+			$tablename = $rowMmRefTablenames['tablenames'];
+			if ($tablename != 'tt_content' && $tablename != 'tt_news' && $tablename != '') {
+				$extensionName[$tablename] = $tablename;
+			}
+			$counter++;
+		}
+		$extensionNameUnique = array_unique($extensionName);
 
-        return $extensionNameUnique;
-    }
+		return $extensionNameUnique;
+	}
 
 	public function getExtensionNamesForMultiselect() {
 		$mmRefTablenames = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            'tablenames',
-            'tx_dam_mm_ref',
-            'dammmrefalreadyexported != 1 AND dammmrefnoexportwanted != 1', // where-clause
-            $groupBy = 'tablenames', // group by
-            $orderBy = '', // order by
-            $limit = '' // limit
-        );
+			'tablenames',
+			'tx_dam_mm_ref',
+			'dammmrefalreadyexported != 1 AND dammmrefnoexportwanted != 1', // where-clause
+			$groupBy = 'tablenames', // group by
+			$orderBy = '', // order by
+			$limit = '' // limit
+		);
 		$extensionName = array();
 		$counter=0;
 		while($rowMmRefTablenames = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($mmRefTablenames)) {
@@ -490,7 +496,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 
 		if (substr(ltrim($filepath, '/'), 0, 9) == 'fileadmin') {
 			$FALIdentifier = $this->getIdentifier($filepath, $filename);
-			$storage = 1;
+			$storage = $this->getStorageForFile($filepath, $filename);
 		} else {
 			$FALIdentifier = $filepath.$filename;
 			$storage = 0;
@@ -503,6 +509,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$FALIdentifier = $this->getIdentifier($rowDamInfoParent['file_path'], $rowDamInfoParent['file_name']);
 
 			if (substr(ltrim($rowDamInfoParent['file_path'],'/'), 0, 9) == 'fileadmin') {
+				// @TODO: implement Storage support (self::getStorageForFile)
 				$storage = 1;
 			} else {
 				$storage = 0;
@@ -514,7 +521,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		}else{
 			$parentFALUid = 0;
 		}
-		
+
 		// insert sys_file entry
 		$fieldsValuesForFALValues = array(
 			'storage' => $storage,
@@ -549,10 +556,10 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$fieldsValuesForFALValues,
 			$no_quote_fields=FALSE
 		);
-		
+
 		// get last inserted uid from sys_file table
 		$lastInsertedIDForFAL = $GLOBALS['TYPO3_DB']->sql_insert_id();
-		
+
 		// insert sys_file_metadata entry
 		$fieldsValuesForFALMetadataValues = array(
 			#'storage' => $storage,
@@ -597,70 +604,123 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 	public function selectOneRowQuery($fields, $table, $where, $groupBy = '', $orderBy = '', $limit = '') {
 
 		$info = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            $fields,	// fields
-            $table, // table
-            $where, // where-clause
-            $groupBy, // group by
-            $orderBy, // order by
-            $limit // limit
-        );
+			$fields,	// fields
+			$table, // table
+			$where, // where-clause
+			$groupBy, // group by
+			$orderBy, // order by
+			$limit // limit
+		);
 		$rowInfo = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($info);
 
 		return $rowInfo;
 	}
 
-	public function getIdentifier($filepath, $filename) {
-		$filepathWithoutFileadmin = str_replace('fileadmin/', '', $filepath);
-		$completeIdentifierForFAL = $filepathWithoutFileadmin . $filename;
-		return '/' . ltrim($completeIdentifierForFAL, '/');
+	protected function getStorage($uid) {
+		$uid = (int) $uid;
+		$storages = $this->getStorages();
+		return isset($storages[$uid]) ? $storages[$uid] : FALSE;
 	}
-	
+	protected function getStorages() {
+		if (!is_array($this->storages)) {
+			$this->_storages = array();
+			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+				'uid, name, driver, configuration',
+				'sys_file_storage',
+				'deleted != 1'
+			);
+			foreach($res as $row) {
+				// read the config
+				// sys_file_storage is not localisable,
+				// so the flexform path is data->sDEF->lDEF->{confvalue}->vDEF
+				$config = \TYPO3\CMS\Core\Utility\GeneralUtility::xml2array($row['configuration']);
+				$row['configuration'] = array();
+				foreach ($config['data']['sDEF']['lDEF'] as $key => $value) {
+					$row['configuration'][$key] = $value['vDEF'];
+				}
+				$this->_storages[(int) $row['uid']] = $row;
+			}
+			unset($config);
+		}
+		return $this->_storages;
+	}
+
+	public function getStorageForFile($filepath, $filename) {
+		foreach($this->getStorages() as $storage) {
+			$basePath = $storage['configuration']['basePath'];
+			if (strpos($filepath, $basePath) === 0) {
+				return (int) $storage['uid'];
+			}
+		}
+		return FALSE;
+	}
+	public function getIdentifier($filepath, $filename, $onlyIfFileExists = FALSE) {
+		$filepathOfStorage = '';
+		$filepathWithoutStorage = $filepath;
+		foreach($this->getStorages() as $storage) {
+			$basePath = rtrim($storage['configuration']['basePath'], '/') . '/';
+			if (strpos($filepath, $basePath) === 0) {
+				$filepathOfStorage = $basePath;
+				$filepathWithoutStorage = substr($filepath, strlen($basePath));
+			}
+		}
+		$completeIdentifierForFAL = rtrim($filepathWithoutStorage, '/') . '/' . $filename;
+		$completeIdentifierForFAL = '/' . ltrim($completeIdentifierForFAL, '/');
+		if (
+			$onlyIfFileExists
+			&& !file_exists(PATH_site . $filepathOfStorage . $filepathWithoutStorage . $filename)
+		) {
+			return FALSE;
+		}
+		return $completeIdentifierForFAL;
+	}
+
 	public function insertFALEntryMetadata($falUid, $damUid, $damUidParent){
-	
+
 		$damInfo = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            '*',
-            'tx_dam',
-            "uid = '" . $damUid . "'", // where-clause
-            $groupBy = '', // group by
-            $orderBy = '', // order by
-            $limit = '' // limit
-        );
+			'*',
+			'tx_dam',
+			"uid = '" . $damUid . "'", // where-clause
+			$groupBy = '', // group by
+			$orderBy = '', // order by
+			$limit = '' // limit
+		);
 		$rowDamInfo = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($damInfo);
-		
+
 		$damInfoParent = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            '*',
-            'tx_dam',
-            "uid = '" . $damUidParent . "'", // where-clause
-            $groupBy = '', // group by
-            $orderBy = '', // order by
-            $limit = '' // limit
-        );
+			'*',
+			'tx_dam',
+			"uid = '" . $damUidParent . "'", // where-clause
+			$groupBy = '', // group by
+			$orderBy = '', // order by
+			$limit = '' // limit
+		);
 		$rowDamInfoParent = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($damInfoParent);
-		
+
 		// get right parent uid from sys_file_metadata
 		$sysfilemetadataInfo = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            'uid',
-            'sys_file_metadata',
-            "file = '" . $falUid . "' AND sys_language_uid = '0'", // where-clause
-            $groupBy = '', // group by
-            $orderBy = '', // order by
-            $limit = '' // limit
-        );
+			'uid',
+			'sys_file_metadata',
+			"file = '" . $falUid . "' AND sys_language_uid = '0'", // where-clause
+			$groupBy = '', // group by
+			$orderBy = '', // order by
+			$limit = '' // limit
+		);
 		$rowSysFileMetadataInfo = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($sysfilemetadataInfo);
-		
+
 		// workaround because NULL can be given, has to be string
 		if ($rowDamInfo['caption'] == NULL){
 			$captionWorkaround = '';
 		}else{
 			$captionWorkaround = $rowDamInfo['caption'];
 		}
-		
+
 		// array for sys_file_metadata entries
-		$fieldsValuesForFALMetadataValues = array(			
+		$fieldsValuesForFALMetadataValues = array(
 			'sys_language_uid' => $rowDamInfo['sys_language_uid'],
 			'file' => $falUid,
-			't3_origuid' => $rowSysFileMetadataInfo['uid'],
-			'l10n_parent' => $rowSysFileMetadataInfo['uid'],
+			't3_origuid' => empty($rowSysFileMetadataInfo['uid']) ? 0 : $rowSysFileMetadataInfo['uid'],
+			'l10n_parent' => empty($rowSysFileMetadataInfo['uid']) ? 0 : $rowSysFileMetadataInfo['uid'],
 			'color_space' => $rowDamInfo['color_space'],
 			#'deleted' => $rowDamInfo['deleted'], n.v.
 			'title' => $rowDamInfo['title'],
@@ -681,7 +741,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			'longitude' => '',
 			'unit' => $rowDamInfoParent['height_unit'],
 			'damUid' => $damUid,
-			'categories' => $rowDamInfo['category']	
+			'categories' => $rowDamInfo['category']
 		);
 
 		$GLOBALS['TYPO3_DB']->exec_INSERTquery (
@@ -689,33 +749,33 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$fieldsValuesForFALMetadataValues,
 			$no_quote_fields=FALSE
 		);
-		
+
 		$this->updateDAMTableWithFALId($damUid, $falUid);
-	
+
 	}
-	
+
 	public function updateFALEntryWithParent($falUid, $damUid, $damUidParent) {
 
 		$damInfo = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            '*',
-            'tx_dam',
-            "uid = '" . $damUid . "'", // where-clause
-            $groupBy = '', // group by
-            $orderBy = '', // order by
-            $limit = '' // limit
-        );
+			'*',
+			'tx_dam',
+			"uid = '" . $damUid . "'", // where-clause
+			$groupBy = '', // group by
+			$orderBy = '', // order by
+			$limit = '' // limit
+		);
 		$rowDamInfo = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($damInfo);
 
 		$damInfoParent = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            '*',
-            'tx_dam',
-            "uid = '" . $damUidParent . "'", // where-clause
-            $groupBy = '', // group by
-            $orderBy = '', // order by
-            $limit = '' // limit
-        );
+			'*',
+			'tx_dam',
+			"uid = '" . $damUidParent . "'", // where-clause
+			$groupBy = '', // group by
+			$orderBy = '', // order by
+			$limit = '' // limit
+		);
 		$rowDamInfoParent = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($damInfoParent);
-		
+
 		// array for sys_file entries
 		$fieldsValuesForFALValues = array(
 			#'sys_language_uid' => $rowDamInfo['sys_language_uid'], n.v.
@@ -726,7 +786,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			#'description' => $rowDamInfo['description'], n.v.
 			#'alternative' => $rowDamInfo['alt_text'], n.v.
 			#'caption' => $rowDamInfo['caption'], n.v.
-			#'fe_groups' => $rowDamInfo['fe_group'], n.v.			
+			#'fe_groups' => $rowDamInfo['fe_group'], n.v.
 			#'t3_origuid' => '', n.v.
 			#'location_country' => $rowDamInfo['loc_country'],
 			#'creator' => $rowDamInfoParent['creator'],
@@ -741,7 +801,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			#'unit' => $rowDamInfoParent['height_unit'],
 			'damUid' => $damUid
 		);
-		
+
 		// update fal entry
 		$GLOBALS['TYPO3_DB']->exec_UPDATEquery (
 			'sys_file',
@@ -749,9 +809,9 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$fieldsValuesForFALValues,
 			$no_quote_fields = FALSE
 		);
-		
+
 		// array for sys_file_metadata entries
-		$fieldsValuesForFALMetadataValues = array(			
+		$fieldsValuesForFALMetadataValues = array(
 			#'sys_language_uid' => $rowDamInfo['sys_language_uid'],
 			'color_space' => $rowDamInfo['color_space'],
 			#'deleted' => $rowDamInfo['deleted'], n.v.
@@ -776,7 +836,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 
 			'categories' => $rowDamInfo['category']
 			#'t3_origuid' => '',
-	
+
 		);
 
 		// update fal metadata entry
@@ -811,15 +871,15 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 	public function updateFALEntry($falUid, $damUid) {
 
 		$damInfo = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            '*',
-            'tx_dam',
-            "uid = '" . $damUid . "'", // where-clause
-            $groupBy = '', // group by
-            $orderBy = '', // order by
-            $limit = '' // limit
-        );
+			'*',
+			'tx_dam',
+			"uid = '" . $damUid . "'", // where-clause
+			$groupBy = '', // group by
+			$orderBy = '', // order by
+			$limit = '' // limit
+		);
 		$rowDamInfo = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($damInfo);
-		
+
 		// update sys_file entry
 		$fieldsValuesForFALValues = array(
 			#'color_space' => $rowDamInfo['color_space'],
@@ -853,8 +913,8 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$fieldsValuesForFALValues,
 			$no_quote_fields = FALSE
 		);
-		
-		
+
+
 		// update sys_file_metadata entry
 		$fieldsValuesForFALValues = array(
 			'color_space' => $rowDamInfo['color_space'],
@@ -865,7 +925,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			'alternative' => $rowDamInfo['alt_text'],
 			'caption' => $rowDamInfo['caption'],
 			'fe_groups' => $rowDamInfo['fe_group'],
-			#'sys_language_uid' => $rowDamInfo['sys_language_uid'],			
+			#'sys_language_uid' => $rowDamInfo['sys_language_uid'],
 			'location_country' => $rowDamInfo['loc_country'],
 			'creator' => $rowDamInfo['creator'],
 			'publisher' => $rowDamInfo['publisher'],
@@ -877,13 +937,13 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			'latitude' => '',
 			'longitude' => '',
 			'unit' => $rowDamInfo['height_unit'],
-			
+
 			'categories' => $rowDamInfo['category'],
 			#'t3_origuid' => '',
-			
+
 			'damUid' => $damUid
 		);
-		
+
 		// update fal entry
 		$GLOBALS['TYPO3_DB']->exec_UPDATEquery (
 			'sys_file_metadata',
@@ -891,7 +951,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$fieldsValuesForFALValues,
 			$no_quote_fields = FALSE
 		);
-		
+
 
 		$this->updateDAMTableWithFALId($damUid, $falUid);
 
@@ -902,74 +962,74 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		$damParentInfoArray = array();
 
 		$parentFileInfo = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            'file_name, file_path',
-            'tx_dam',
-            "uid = '" . $parentID . "'", // where-clause
-            $groupBy = '', // group by
-            $orderBy = '', // order by
-            $limit = '10000' // limit
-        );
+			'file_name, file_path',
+			'tx_dam',
+			"uid = '" . $parentID . "'", // where-clause
+			$groupBy = '', // group by
+			$orderBy = '', // order by
+			$limit = '10000' // limit
+		);
 
 		$rowParentFileInfo = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($parentFileInfo);
 
-        $damParentInfoArray['filename'] = $rowParentFileInfo['file_name'];
+		$damParentInfoArray['filename'] = $rowParentFileInfo['file_name'];
 		$damParentInfoArray['filepath'] = $rowParentFileInfo['file_path'];
 
-        return $damParentInfoArray;
+		return $damParentInfoArray;
 
 	}
 
 	public function getSpecificFALEntry($identifier, $name, $languageUid) {
 
 		$specificFALEntry = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-		    'uid',
-            'sys_file',
-            "identifier = '" . $identifier . "' and name = '" . $name . "' and sys_language_uid = '" . $languageUid . "'", // where-clause
-            $groupBy = '', // group by
-            $orderBy = '', // order by
-            $limit = '10000' // limit
-        );
-        return $specificFALEntry;
+			'uid',
+			'sys_file',
+			"identifier = '" . $identifier . "' and name = '" . $name . "' and sys_language_uid = '" . $languageUid . "'", // where-clause
+			$groupBy = '', // group by
+			$orderBy = '', // order by
+			$limit = '10000' // limit
+		);
+		return $specificFALEntry;
 
 	}
 
-    public function getCountedUidForeignsFromSysFileReference($fieldnameSysFileReference,$tablename, $fieldnameForeignTable) {
+	public function getCountedUidForeignsFromSysFileReference($fieldnameSysFileReference,$tablename, $fieldnameForeignTable) {
 
-        $entries = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            'uid_foreign',
-            'sys_file_reference',
-            "fieldname = '" . $fieldnameSysFileReference . "' AND tablenames = '" . $tablename . "' and deleted <> 1", // where-clause
-            $groupBy = '', // group by
-            $orderBy = '', // order by
-            $limit = '' // limit
-        );
+		$entries = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+			'uid_foreign',
+			'sys_file_reference',
+			"fieldname = '" . $fieldnameSysFileReference . "' AND tablenames = '" . $tablename . "' and deleted <> 1", // where-clause
+			$groupBy = '', // group by
+			$orderBy = '', // order by
+			$limit = '' // limit
+		);
 
-        $arr = array();
-        while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($entries)) {
-           $arr[]  = $row['uid_foreign'];
-        }
-        $countedArr = array_count_values($arr);
+		$arr = array();
+		while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($entries)) {
+		   $arr[]  = $row['uid_foreign'];
+		}
+		$countedArr = array_count_values($arr);
 
-        foreach ($countedArr as $countedkey => $countedvalue) {
-            $fieldarray = array();
-            $fieldarray = array(
-                $fieldnameForeignTable  => $countedvalue
-            );
-            $this->updateTableEntry($tablename,"uid = '" . $countedkey . "'", $fieldarray);
-        }
+		foreach ($countedArr as $countedkey => $countedvalue) {
+			$fieldarray = array();
+			$fieldarray = array(
+				$fieldnameForeignTable  => $countedvalue
+			);
+			$this->updateTableEntry($tablename,"uid = '" . $countedkey . "'", $fieldarray);
+		}
 
-    }
+	}
 
 	public function getArrayDataFromTable($fields, $tablename, $where, $groupBy = '', $orderBy = '', $limit = '10000') {
 
-        $entries = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+		$entries = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 			$fields,
-            $tablename,
-            $where, // where-clause
-            $groupBy, // group by
-            $orderBy, // order by
-            $limit // limit
-        );
+			$tablename,
+			$where, // where-clause
+			$groupBy, // group by
+			$orderBy, // order by
+			$limit // limit
+		);
 
 		$arr = array();
 		$counter = 1;
@@ -984,27 +1044,27 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$arr[$number] = $row;
 			$counter++;
 		}
-        return $arr;
-    }
+		return $arr;
+	}
 
-    public function getTxDamEntriesNotImported() {
+	public function getTxDamEntriesNotImported() {
 
-        $txDamEntries = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+		$txDamEntries = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 			'uid, file_path, file_name, sys_language_uid, l18n_parent',
-            'tx_dam',
-            'damalreadyexported <> 1', // where-clause
-            $groupBy = '', // group by
-            $orderBy = '', // order by
-            $limit = '10000' // limit
-        );
+			'tx_dam',
+			'damalreadyexported <> 1', // where-clause
+			$groupBy = '', // group by
+			$orderBy = '', // order by
+			$limit = '10000' // limit
+		);
 
-        return $txDamEntries;
+		return $txDamEntries;
 
-    }
+	}
 
 	public function getProgressArray($table, $whereProgress, $whereOverall = '') {
 
-        $getProgressArray = array();
+		$getProgressArray = array();
 
 		$columnFieldExists = $this->tableOrColumnFieldExist($table, 'field', $columnFieldname = 'uid_local');
 
@@ -1013,18 +1073,18 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		}else{
 			$countVar = 'uid';
 		}
-		
+
 		if ($table == 'tx_dam_mm_cat'){
 			$whereClauseForOverall = '';
 		}else{
 			$whereClauseForOverall = 'deleted = 0';
 		}
-		
-        $getProgressArray['overall'] = $this->countTableEntries($countVar, $table, $whereClauseForOverall, $groupBy = '',$orderBy = '', $limit = '');
 
-        $getProgressArray['actualcount'] = $this->countTableEntries($countVar, $table, $whereProgress, $groupBy = '', $orderBy = '', $limit = '');
+		$getProgressArray['overall'] = $this->countTableEntries($countVar, $table, $whereClauseForOverall, $groupBy = '',$orderBy = '', $limit = '');
 
-        return $getProgressArray;
-    }
-	
+		$getProgressArray['actualcount'] = $this->countTableEntries($countVar, $table, $whereProgress, $groupBy = '', $orderBy = '', $limit = '');
+
+		return $getProgressArray;
+	}
+
 }
