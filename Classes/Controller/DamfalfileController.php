@@ -61,7 +61,7 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 	 * @return void
 	 */
 	public function listAction($executeDamUpdateSubmit = '') {
-
+			
         $this->view->assign('tabInteger',0);
 
 		$pathSite = $this->getRightPath();
@@ -73,10 +73,12 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 		$txDamEntriesNotImported = $this->damfalfileRepository->getArrayDataFromTable('uid, file_path, file_name, sys_language_uid, l18n_parent', 'tx_dam', 'damalreadyexported <> 1 and deleted = 0', $groupBy = '', $orderBy = '', $limit = '10000');
 
 		if ($txDamEntriesNotImported) {
+
             // if button was pressed start the tx_dam transfer
             if ($executeDamUpdateSubmit) {
 
 				foreach ($txDamEntriesNotImported as $rowDamEntriesNotImported) {
+							
                     // get subpart from tx_dam.file_path to compare later on with sys_file.identifier; complete it to FAL identifier
 					$completeIdentifierForFAL = $this->damfalfileRepository->getIdentifier($rowDamEntriesNotImported['file_path'],$rowDamEntriesNotImported['file_name']);
 
@@ -122,21 +124,35 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 								// still to watch and think over if it makes sense
 								$this->damfalfileRepository->updateFALEntryWithParent($foundFALEntryWithParentID['uid'], $rowDamEntriesNotImported['uid'], $rowDamEntriesNotImported['l18n_parent']);
 							} else {
-							
-								//gibt fal eintrag aber noch kein metadata eintrag dazu
-								// test ob fal eintrag existriet, wenn ja dann nur metadata eintrag sonst neuer fal eintrag
+								// if a file entry exits but there is no filemetadata entry
+								// test if a fal entry exists, if so then just do a filemetadata entry
 								$foundFALEntryChecked = $this->damfalfileRepository->selectOneRowQuery('uid', 'sys_file', "identifier = '" . addslashes($completeIdentifierForFALWithParentID) . "' and name = '" . addslashes($damParentFileInfo['filename']) . "'", $groupBy = '', $orderBy = '', $limit = '10000');
 								// if a FAL entry is found, insert metadata
 								if ($foundFALEntryChecked['uid'] > 0 && $rowDamEntriesNotImported['sys_language_uid'] > 0) {
 									$this->damfalfileRepository->insertFALEntryMetadata($foundFALEntryChecked['uid'], $rowDamEntriesNotImported['uid'], $rowDamEntriesNotImported['l18n_parent']);
 								} else {
-									$this->damfalfileRepository->insertFalEntry($rowDamEntriesNotImported['uid']);
+									// update sotrage index should insert all files, so just update
+									//$this->damfalfileRepository->insertFalEntry($rowDamEntriesNotImported['uid']);
+									$foundFALEntryWhichHasNoFilemetadata = $this->damfalfileRepository->selectOneRowQuery('uid', 'sys_file', "identifier = '" . $this->sanitizeName($completeIdentifierForFAL) . "' AND name = '" . $this->sanitizeName($rowDamEntriesNotImported["file_name"]) . "'", $groupBy = '', $orderBy = '', $limit = '10000');
+									$this->damfalfileRepository->updateFALEntry($foundFALEntryWhichHasNoFilemetadata['uid'], $rowDamEntriesNotImported['uid']);
 								}
-							
 							}
 
 						} else {
-							$this->damfalfileRepository->insertFalEntry($rowDamEntriesNotImported['uid']);
+							// check if a fal entry exists but has no filemetadata entry
+							// search for fal entry, comparing identifier and name
+							$foundFALEntryWhichHasNoFilemetadata = $this->damfalfileRepository->selectOneRowQuery('uid', 'sys_file', "identifier = '" . $this->sanitizeName($completeIdentifierForFAL) . "' AND name = '" . $this->sanitizeName($rowDamEntriesNotImported["file_name"]) . "'", $groupBy = '', $orderBy = '', $limit = '10000');
+							// if a fal entry was found take that uid otherwise insert fal entry
+							if ($foundFALEntryWhichHasNoFilemetadata){
+								// update fal entry
+								$this->damfalfileRepository->updateFALEntry($foundFALEntryWhichHasNoFilemetadata['uid'], $rowDamEntriesNotImported['uid']);
+								// create filemetadata entry
+								$this->damfalfileRepository->insertFALEntryMetadata($foundFALEntryWhichHasNoFilemetadata['uid'], $rowDamEntriesNotImported['uid'], $rowDamEntriesNotImported['l18n_parent']);
+							} else {
+								// update sotrage index should insert all files, so just update
+								// nothing should happen, because it should find sth before
+								//$this->damfalfileRepository->insertFalEntry($rowDamEntriesNotImported['uid']);
+							}
 						}
 					}
                 }
@@ -151,7 +167,7 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
         $txDamEntriesProgressArray = $this->damfalfileRepository->getProgressArray('tx_dam', "damalreadyexported = '1'", '');
         $this->view->assign('txDamEntriesProgressArray', $txDamEntriesProgressArray);
 	}
-
+	
 	/**
 	 * @param string $name
 	 * @return string
