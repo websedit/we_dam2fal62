@@ -61,16 +61,7 @@
 										
 										<f:if condition="{iteratorForData.index} == 2">
 										  <f:then>
-
-											<f:if condition="{extensionData}">
-												<f:then>
-													<td><f:form.textfield name="identifierArray[{itemIterator.index}][2]" value="{extensionData}" size="40" maxlength="50" class="falident_{itemIterator.index} required" /></td><td><f:form.checkbox  id="falident_{itemIterator.index}" class="checkboxTrigger" name="identifierArray[{itemIterator.index}][3]" value="isChecked" checked="" /></td>
-												</f:then>
-												<f:else>
-													<td><f:form.textfield name="identifierArray[{itemIterator.index}][2]" value="" size="40" maxlength="50" class="falident_{itemIterator.index} required" /></td><td><f:form.checkbox id="falident_{itemIterator.index}" class="checkboxTrigger" name="identifierArray[{itemIterator.index}][3]" value="isChecked" checked="" /></td>
-												</f:else>
-											</f:if>
-
+											<td><f:form.textfield name="identifierArray[{itemIterator.index}][2]" value="{extensionData}" size="40" maxlength="50" class="falident_{itemIterator.index} required" /></td><td><f:form.checkbox id="falident_{itemIterator.index}" class="checkboxTrigger" name="identifierArray[{itemIterator.index}][3]" value="isChecked" checked="" /></td>
 										  </f:then>
 										</f:if>
 										
@@ -154,6 +145,8 @@
 
         <span title="{f:translate(key: 'tx_wedam2fal_domain_model_damfalfile.updatettcontentthumbnailtooltip')}"><f:form.checkbox name="thumbnailTest" value="thumbnailTest" /> <f:translate key="tx_wedam2fal_domain_model_damfalfile.updatettcontentthumbnail"  /></span><br/>
         <span title="{f:translate(key: 'tx_wedam2fal_domain_model_damfalfile.updatettcontentrtetooltip')}"><f:form.checkbox name="rteFilelinkTest" value="rteFilelinkTest" /> <f:translate key="tx_wedam2fal_domain_model_damfalfile.updatettcontentrte"  /></span><br/>
+		<span title="{f:translate(key: 'tx_wedam2fal_domain_model_damfalfile.updatettcontentpicturelinktooltip')}"><f:form.checkbox name="pictureFilelinkTest" value="pictureFilelinkTest" /> <f:translate key="tx_wedam2fal_domain_model_damfalfile.pictureFilelinkTest"  /></span><br/>
+		
         <br/>
         <f:form.hidden name="tabInteger" value="2" />
         <f:form.submit value="{f:translate(key: 'tx_wedam2fal_domain_model_damfalfile.submitButton')}" name="executeTTContentTestSubmit" />

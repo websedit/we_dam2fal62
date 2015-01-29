@@ -102,7 +102,10 @@
 			
 			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.warningpointthree">
 			    <source>
-					Index all your files with a Scheduler Task (File Abstratcion Layer: Update storage index)
+					<![CDATA[Index all your files with a Scheduler Task (File Abstratcion Layer: Update storage index).<br/>
+					It could happen that the Scheduler Task (File Abstratcion Layer: Update storage index) does not index all your files,<br/>
+					then it could happen that the file information e.g. title, description etc is not imported.<br/>
+					A save way to index all files properly is to click on every folder in fileadmin-folders.]]>
 				</source>
             </trans-unit>
 			
@@ -121,6 +124,12 @@
 			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.warningpointsix">
 			    <source>
 					Rewrite your DAM related extensions to make them FAL ready
+				</source>
+            </trans-unit>
+			
+			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.warningpointseven">
+			    <source>
+					Check the Install Tool - Upgrade Wizard if all tasks are done
 				</source>
             </trans-unit>
 			
@@ -235,7 +244,15 @@
             </trans-unit>
 			
 			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.supportttnews">
-                <source>tt_news is not supported at the moment.</source>
+                <source>tt_news relations will be imported. But you have to set up tt_news with FAL support. Therefore install e.g. the extension: fal_ttnews.</source>
+            </trans-unit>
+			
+			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.pictureFilelinkTest">
+                <source>tt_content picture link update</source>
+            </trans-unit>
+			
+			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.updatettcontentpicturelinktooltip">
+                <source>Checks the picture links of the content elements about the media-tag and replaces it with the file-tag.</source>
             </trans-unit>
 			
 			</body>

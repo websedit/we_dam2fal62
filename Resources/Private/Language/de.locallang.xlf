@@ -102,7 +102,10 @@
 			
 			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.warningpointthree">
 			    <target>
-					Indexieren Sie alle Dateien mit einem Planer Task (File Abstraction Layer: Update storage index)
+					<![CDATA[Indexieren Sie alle Dateien mit einem Planer Task (File Abstraction Layer: Update storage index).<br/>
+					Es kann passieren, dass der Planer Task (File Abstraction Layer: Update storage index) nicht alle Dateien indexiert.<br/>
+					Deshalb kann es passieren, dass die Dateiinformationen z.B. Titel, Beschreibung nicht importiert werden.<br/>
+					Ein sicherer Weg alle Dateien zu indexieren ist, jeden Ordner im fileadmin Verzeichnis einmal anzuklicken.]]>
 				</target>
             </trans-unit>
 			
@@ -121,6 +124,12 @@
 			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.warningpointsix">
 			    <target>
 					Aktualisieren Sie alle auf DAM basierenden Extensions auf FAL
+				</target>
+            </trans-unit>
+			
+			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.warningpointseven">
+			    <target>
+					Im Install Tool - Upgrade Wizard nochmals kontrollieren ob sämtliche Aufgaben des Upgrade Wizard erledigt sind
 				</target>
             </trans-unit>
 			
@@ -235,8 +244,16 @@
             </trans-unit>
 			
 			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.supportttnews">
-                <target>tt_news wird momentan nicht unterstützt.</target>
-            </trans-unit>			
+                <target>tt_news Verknüpfungen werden übernommen. Allerdings ist es notwendig tt_news FAL-ready zu machen, damit Bilder/Daten angezeigt werden. Installieren Sie hierfür z.B. die Extension: fal_ttnews</target>
+            </trans-unit>
+			
+			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.pictureFilelinkTest">
+                <target>tt_content Bildlink Update</target>
+            </trans-unit>
+
+			<trans-unit id="tx_wedam2fal_domain_model_damfalfile.updatettcontentpicturelinktooltip">
+                <target>Prüft die Bildlinks der Contentelemente nach dem media-Tag und ersetzt diese mit dem file-Tag.</target>
+            </trans-unit>
 			
 			</body>
 	</file>

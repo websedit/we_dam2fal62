@@ -149,28 +149,29 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$this->updateDAMCategoryTableWithFALId($rowCategories['uid'], $lastInsertedIDForFAL);
 		}
 
-
-
 		$categoriesReferences = $this->getArrayDataFromTable('*', 'tx_dam_mm_cat', 'dammmcatalreadyexported != 1', $groupBy = '', $orderBy = '', $limit = '');
 
 		foreach ($categoriesReferences as $value) {
 
-			// get falUid from tx_dam
-			$row = $this->selectOneRowQuery('falUid', 'tx_dam', "uid='" . $value['uid_local'] . "'", $groupBy = '', $orderBy = '', $limit = '');
-			$falUid = $row['falUid'];
+			// get falUid from tx_dam and then get right sys_file_metadata uid
+			$row = $this->selectOneRowQuery('falUid, sys_language_uid', 'tx_dam', "uid='" . $value['uid_local'] . "'", $groupBy = '', $orderBy = '', $limit = '');
+			
+			$rowMetadataInfo = $this->selectOneRowQuery('uid', 'sys_file_metadata', "file='" . $row['falUid'] . "' AND sys_language_uid = '" . $row['sys_language_uid'] . "'", $groupBy = '', $orderBy = '', $limit = '');
+			$falMetadataUid = $rowMetadataInfo['uid'];
 
 			// get falCatUid from tx_dam_cat
 			$row = $this->selectOneRowQuery('falCatUid', 'tx_dam_cat', "uid='" . $value['uid_foreign'] . "'", $groupBy = '', $orderBy = '', $limit = '');
 			$falCatUid = $row['falCatUid'];
-
+			
 			$fieldsValuesCatRef = array();
 			$fieldsValuesCatRef = array(
 				'uid_local' => $falCatUid,
-				'uid_foreign' => $falUid,
-				'tablenames' => 'sys_file',
+				'uid_foreign' => $falMetadataUid,
+				'tablenames' => 'sys_file_metadata',
+				'fieldname' => 'categories',
 				'damCatRefImported' => 1
 			);
-
+			
 			// update sys_category_record_mm entry
 			$GLOBALS['TYPO3_DB']->exec_INSERTquery (
 				'sys_category_record_mm',
@@ -178,7 +179,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 				$no_quote_fields = FALSE
 			);
 
-			$falCatRefInfo = $falCatUid . ';' . $falUid . ';sys_file';
+			$falCatRefInfo = $falCatUid . ';' . $falMetadataUid . ';sys_file_metadata';
 
 			$fieldsValuesForDamCatRefValues = array();
 			$fieldsValuesForDamCatRefValues = array(
@@ -247,6 +248,10 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			
 			if ($sorting_foreign == NULL){
 				$sorting_foreign = 0;
+			}
+			
+			if ($link == NULL){
+				$link = '';
 			}
 
 			$fieldsValuesForFALValues = array(
@@ -349,6 +354,10 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$sorting_foreign = 0;
 		}
 		
+		if ($link == NULL){
+			$link = '';
+		}
+		
 		$fieldsValuesForFALValues = array(
 			'fieldname' => $fieldname,
 			'deleted' => '0',
@@ -364,7 +373,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			'description' => $description,
 			'alternative' => $alternative,
 			'link' => $link,
-			'l10n_parent' => $uidOfParent,     // parent of sys_file_reference
+			'l10n_parent' => $uidOfParent, // parent of sys_file_reference
 			'hidden' => '0'
 		);
 
@@ -490,7 +499,8 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 
 		if (substr(ltrim($filepath, '/'), 0, 9) == 'fileadmin') {
 			$FALIdentifier = $this->getIdentifier($filepath, $filename);
-			$storage = 1;
+			//$storage = 1;
+			$storage = $this->getStorageForFile($filepath, $filename);
 		} else {
 			$FALIdentifier = $filepath.$filename;
 			$storage = 0;
@@ -503,6 +513,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$FALIdentifier = $this->getIdentifier($rowDamInfoParent['file_path'], $rowDamInfoParent['file_name']);
 
 			if (substr(ltrim($rowDamInfoParent['file_path'],'/'), 0, 9) == 'fileadmin') {
+				// @TODO: implement Storage support (self::getStorageForFile)
 				$storage = 1;
 			} else {
 				$storage = 0;
@@ -608,11 +619,78 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 
 		return $rowInfo;
 	}
-
+	/*
 	public function getIdentifier($filepath, $filename) {
 		$filepathWithoutFileadmin = str_replace('fileadmin/', '', $filepath);
 		$completeIdentifierForFAL = $filepathWithoutFileadmin . $filename;
 		return '/' . ltrim($completeIdentifierForFAL, '/');
+	}*/
+	
+	protected function getStorage($uid) {
+		$uid = (int) $uid;
+		$storages = $this->getStorages();
+		return isset($storages[$uid]) ? $storages[$uid] : FALSE;
+	}
+	
+	protected function getStorages() {
+		if (!is_array($this->storages)) {
+			
+			$this->_storages = array();
+			
+			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+				'uid, name, driver, configuration',
+				'sys_file_storage',
+				'deleted <> 1'
+			);
+
+			while($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)){
+
+				// read the config
+				// sys_file_storage is not localisable,
+				// so the flexform path is data->sDEF->lDEF->{confvalue}->vDEF
+				$config = \TYPO3\CMS\Core\Utility\GeneralUtility::xml2array($row['configuration']);
+
+				$row['configuration'] = array();
+				foreach ($config['data']['sDEF']['lDEF'] as $key => $value) {
+					$row['configuration'][$key] = $value['vDEF'];
+				}
+				$this->_storages[(int) $row['uid']] = $row;
+			}
+			
+			unset($config);
+		}
+		return $this->_storages;
+	}
+
+	public function getStorageForFile($filepath, $filename) {
+		foreach($this->getStorages() as $storage) {
+			$basePath = $storage['configuration']['basePath'];
+			if (strpos($filepath, $basePath) === 0) {
+				return (int) $storage['uid'];
+			}
+		}
+		return FALSE;
+	}
+	
+	public function getIdentifier($filepath, $filename, $onlyIfFileExists = FALSE) {
+		$filepathOfStorage = '';
+		$filepathWithoutStorage = $filepath;
+		foreach($this->getStorages() as $storage) {
+			$basePath = rtrim($storage['configuration']['basePath'], '/') . '/';
+			if (strpos($filepath, $basePath) === 0) {
+				$filepathOfStorage = $basePath;
+				$filepathWithoutStorage = substr($filepath, strlen($basePath));
+			}
+		}
+		$completeIdentifierForFAL = rtrim($filepathWithoutStorage, '/') . '/' . $filename;
+		$completeIdentifierForFAL = '/' . ltrim($completeIdentifierForFAL, '/');
+		if (
+		$onlyIfFileExists
+		&& !file_exists(PATH_site . $filepathOfStorage . $filepathWithoutStorage . $filename)
+		){
+			return FALSE;
+		}
+		return $completeIdentifierForFAL;
 	}
 	
 	public function insertFALEntryMetadata($falUid, $damUid, $damUidParent){
@@ -656,11 +734,13 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		}
 		
 		// array for sys_file_metadata entries
-		$fieldsValuesForFALMetadataValues = array(			
+		$fieldsValuesForFALMetadataValues = array(
 			'sys_language_uid' => $rowDamInfo['sys_language_uid'],
 			'file' => $falUid,
-			't3_origuid' => $rowSysFileMetadataInfo['uid'],
-			'l10n_parent' => $rowSysFileMetadataInfo['uid'],
+			//'t3_origuid' => $rowSysFileMetadataInfo['uid'],
+			//'l10n_parent' => $rowSysFileMetadataInfo['uid'],
+			't3_origuid' => empty($rowSysFileMetadataInfo['uid']) ? 0 : $rowSysFileMetadataInfo['uid'],
+			'l10n_parent' => empty($rowSysFileMetadataInfo['uid']) ? 0 : $rowSysFileMetadataInfo['uid'],
 			'color_space' => $rowDamInfo['color_space'],
 			#'deleted' => $rowDamInfo['deleted'], n.v.
 			'title' => $rowDamInfo['title'],
@@ -681,7 +761,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			'longitude' => '',
 			'unit' => $rowDamInfoParent['height_unit'],
 			'damUid' => $damUid,
-			'categories' => $rowDamInfo['category']	
+			'categories' => $rowDamInfo['category']
 		);
 
 		$GLOBALS['TYPO3_DB']->exec_INSERTquery (
@@ -689,9 +769,9 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 			$fieldsValuesForFALMetadataValues,
 			$no_quote_fields=FALSE
 		);
-		
+
 		$this->updateDAMTableWithFALId($damUid, $falUid);
-	
+
 	}
 	
 	public function updateFALEntryWithParent($falUid, $damUid, $damUidParent) {
@@ -783,7 +863,7 @@ class DamfalfileRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		$GLOBALS['TYPO3_DB']->exec_UPDATEquery (
 			'sys_file_metadata',
 			"file = '" . $falUid . "' AND sys_language_uid = '" . $rowDamInfo['sys_language_uid'] . "'",
-			$fieldsValuesForFALValues,
+			$fieldsValuesForFALMetadataValues,
 			$no_quote_fields = FALSE
 		);
 

@@ -61,7 +61,7 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 	 * @return void
 	 */
 	public function listAction($executeDamUpdateSubmit = '') {
-
+			
         $this->view->assign('tabInteger',0);
 
 		$pathSite = $this->getRightPath();
@@ -73,26 +73,49 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 		$txDamEntriesNotImported = $this->damfalfileRepository->getArrayDataFromTable('uid, file_path, file_name, sys_language_uid, l18n_parent', 'tx_dam', 'damalreadyexported <> 1 and deleted = 0', $groupBy = '', $orderBy = '', $limit = '10000');
 
 		if ($txDamEntriesNotImported) {
+
             // if button was pressed start the tx_dam transfer
             if ($executeDamUpdateSubmit) {
 
 				foreach ($txDamEntriesNotImported as $rowDamEntriesNotImported) {
+						
                     // get subpart from tx_dam.file_path to compare later on with sys_file.identifier; complete it to FAL identifier
-					$completeIdentifierForFAL = $this->damfalfileRepository->getIdentifier($rowDamEntriesNotImported['file_path'],$rowDamEntriesNotImported['file_name']);
+					//$completeIdentifierForFAL = $this->damfalfileRepository->getIdentifier($rowDamEntriesNotImported['file_path'],$rowDamEntriesNotImported['file_name']);
+
+					$completeIdentifierForFAL = $this->damfalfileRepository->getIdentifier(
+						$rowDamEntriesNotImported['file_path'],
+						$rowDamEntriesNotImported['file_name'],
+						TRUE // Make sure the imported file exists
+					);
+					
+					$storageIdForFAL = $this->damfalfileRepository->getStorageForFile(
+						$rowDamEntriesNotImported['file_path'],
+						$rowDamEntriesNotImported['file_name']
+					);
+					// @TODO: create storage, if not exists!?
 
 					// Make sure the imported file exists
-					if (!file_exists(PATH_site . 'fileadmin' . $completeIdentifierForFAL)) {					
+					//if (!file_exists(PATH_site . 'fileadmin' . $completeIdentifierForFAL)) {
+
+					if (!$completeIdentifierForFAL) {
 						// if the file doesnt exist, just place the mark for imported, otherwise the unmarked file will block the process
+						$this->damfalfileRepository->updateDAMTableWithFALId($rowDamEntriesNotImported['uid'], "0");
+						continue;
+					}
+					
+					// .htaccess data workaround; .htaccess data information will not be imported
+					if ($rowDamEntriesNotImported['file_name'] == '.htaccess') {
 						$this->damfalfileRepository->updateDAMTableWithFALId($rowDamEntriesNotImported['uid'], "0");
 						continue;
 					}
 
 					// compare DAM with FAL entries in db in a foreach loop where tx_dam.file_path == sys_file.identifier and tx_dam.file_name == sys_file.name and sys_language_uid == sys_file_metadata.sys_language_uid
-					$foundFALEntry = $this->damfalfileRepository->selectOneRowQuery('file.uid', 'sys_file file, sys_file_metadata filemetadata', "file.uid = filemetadata.file AND file.identifier = '" . $this->sanitizeName($completeIdentifierForFAL) . "' AND file.name = '" . $this->sanitizeName($rowDamEntriesNotImported["file_name"]) . "' AND filemetadata.sys_language_uid = '" . $rowDamEntriesNotImported['sys_language_uid'] . "'", $groupBy = '', $orderBy = '', $limit = '10000');
+					//$foundFALEntry = $this->damfalfileRepository->selectOneRowQuery('file.uid', 'sys_file file, sys_file_metadata filemetadata', "file.uid = filemetadata.file AND file.identifier = '" . $this->sanitizeName($completeIdentifierForFAL) . "' AND file.name = '" . $this->sanitizeName($rowDamEntriesNotImported["file_name"]) . "' AND filemetadata.sys_language_uid = '" . $rowDamEntriesNotImported['sys_language_uid'] . "'", $groupBy = '', $orderBy = '', $limit = '10000');
+					$foundFALEntry = $this->damfalfileRepository->selectOneRowQuery('file.uid', 'sys_file file, sys_file_metadata filemetadata', "file.uid = filemetadata.file AND file.identifier = '" . $this->sanitizeName($completeIdentifierForFAL) . "' AND file.name = '" . $this->sanitizeName($rowDamEntriesNotImported["file_name"]) . "' AND file.storage = '" . $storageIdForFAL . "' AND filemetadata.sys_language_uid = '" . $rowDamEntriesNotImported['sys_language_uid'] . "'", $groupBy = '', $orderBy = '', $limit = '10000');
 
 					// if a FAL entry is found compare information and update it if necessary
 					if ($foundFALEntry["uid"] > 0) {
-
+						
 						$this->damfalfileRepository->updateFALEntry($foundFALEntry['uid'], $rowDamEntriesNotImported['uid']);
 
 					// else insert the DAM information into sys_file table
@@ -100,43 +123,60 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 
 						// check if there is a parent-entry in tx_dam for the translation
 						if ($rowDamEntriesNotImported['uid'] > 0 and $rowDamEntriesNotImported['l18n_parent'] > 0 and $rowDamEntriesNotImported['sys_language_uid'] > 0) {
-
+							
 							// get information from parent entry; file_path and file_name
 							$damParentFileInfo = $this->damfalfileRepository->getDamParentInformation($rowDamEntriesNotImported['l18n_parent']);
 
 							// get subpart from tx_dam.file_path to compare later on with sys_file.identifier; complete it to FAL identifier
-							$completeIdentifierForFALWithParentID = $this->damfalfileRepository->getIdentifier($damParentFileInfo['filepath'],$damParentFileInfo['filename']);
+							$completeIdentifierForFALWithParentID = $this->damfalfileRepository->getIdentifier($damParentFileInfo['filepath'],$damParentFileInfo['filename'],TRUE);
 
 							// compare DAM with FAL entries
 							#$foundFALEntryWithParentID = $this->damfalfileRepository->selectOneRowQuery('uid', 'sys_file', "identifier = '" . addslashes($completeIdentifierForFALWithParentID) . "' and name = '" . addslashes($damParentFileInfo['filename']) . "' and sys_language_uid = '" . $rowDamEntriesNotImported['sys_language_uid'] . "'", $groupBy = '', $orderBy = '', $limit = '10000');
 							
-							$foundFALEntryWithParentID = $this->damfalfileRepository->selectOneRowQuery('uid',
+							$foundFALEntryWithParentID = $this->damfalfileRepository->selectOneRowQuery('file.uid',
 							'sys_file file, sys_file_metadata filemetadata',
-							"file.uid = filemetadata.file AND file.identifier = '" . addslashes($completeIdentifierForFALWithParentID) . "' AND file.name = '" . addslashes($damParentFileInfo['filename']) . "' and filemetadata.sys_language_uid = '" . $rowDamEntriesNotImported['sys_language_uid'] . "'",
+							//"file.uid = filemetadata.file AND file.identifier = '" . addslashes($completeIdentifierForFALWithParentID) . "' AND file.name = '" . addslashes($damParentFileInfo['filename']) . "' and filemetadata.sys_language_uid = '" . $rowDamEntriesNotImported['sys_language_uid'] . "'",
+							"file.uid = filemetadata.file AND file.identifier = '" . addslashes($completeIdentifierForFALWithParentID) . "' AND file.name = '" . addslashes($damParentFileInfo['filename']) . "' AND filemetadata.sys_language_uid = '" . $rowDamEntriesNotImported['sys_language_uid'] . "'",						
 							$groupBy = '',
 							$orderBy = '',
 							$limit = '10000');
 
 							// if a FAL entry is found compare information and update it if necessary
 							if ($foundFALEntryWithParentID['uid'] > 0) {
-								// still to watch and think over if it makes sense
+								// update sys_file_metadata entry
 								$this->damfalfileRepository->updateFALEntryWithParent($foundFALEntryWithParentID['uid'], $rowDamEntriesNotImported['uid'], $rowDamEntriesNotImported['l18n_parent']);
 							} else {
-							
-								//gibt fal eintrag aber noch kein metadata eintrag dazu
-								// test ob fal eintrag existriet, wenn ja dann nur metadata eintrag sonst neuer fal eintrag
+								// if a file entry exits but there is no filemetadata entry
+								// test if a fal entry exists, if so then just do a filemetadata entry
+								//$foundFALEntryChecked = $this->damfalfileRepository->selectOneRowQuery('uid', 'sys_file', "identifier = '" . addslashes($completeIdentifierForFALWithParentID) . "' and name = '" . addslashes($damParentFileInfo['filename']) . "'", $groupBy = '', $orderBy = '', $limit = '10000');
 								$foundFALEntryChecked = $this->damfalfileRepository->selectOneRowQuery('uid', 'sys_file', "identifier = '" . addslashes($completeIdentifierForFALWithParentID) . "' and name = '" . addslashes($damParentFileInfo['filename']) . "'", $groupBy = '', $orderBy = '', $limit = '10000');
+
 								// if a FAL entry is found, insert metadata
 								if ($foundFALEntryChecked['uid'] > 0 && $rowDamEntriesNotImported['sys_language_uid'] > 0) {
 									$this->damfalfileRepository->insertFALEntryMetadata($foundFALEntryChecked['uid'], $rowDamEntriesNotImported['uid'], $rowDamEntriesNotImported['l18n_parent']);
 								} else {
-									$this->damfalfileRepository->insertFalEntry($rowDamEntriesNotImported['uid']);
+									// update sotrage index should insert all files, so just update
+									//$this->damfalfileRepository->insertFalEntry($rowDamEntriesNotImported['uid']);
+									$foundFALEntryWhichHasNoFilemetadata = $this->damfalfileRepository->selectOneRowQuery('uid', 'sys_file', "identifier = '" . $this->sanitizeName($completeIdentifierForFAL) . "' AND name = '" . $this->sanitizeName($rowDamEntriesNotImported["file_name"]) . "'", $groupBy = '', $orderBy = '', $limit = '10000');
+									$this->damfalfileRepository->updateFALEntry($foundFALEntryWhichHasNoFilemetadata['uid'], $rowDamEntriesNotImported['uid']);
 								}
-							
 							}
 
 						} else {
-							$this->damfalfileRepository->insertFalEntry($rowDamEntriesNotImported['uid']);
+							// check if a fal entry exists but has no filemetadata entry
+							// search for fal entry, comparing identifier and name
+							$foundFALEntryWhichHasNoFilemetadata = $this->damfalfileRepository->selectOneRowQuery('uid', 'sys_file', "identifier = '" . $this->sanitizeName($completeIdentifierForFAL) . "' AND name = '" . $this->sanitizeName($rowDamEntriesNotImported["file_name"]) . "'", $groupBy = '', $orderBy = '', $limit = '10000');
+							// if a fal entry was found take that uid otherwise insert fal entry
+							if ($foundFALEntryWhichHasNoFilemetadata){
+								// update fal entry
+								$this->damfalfileRepository->updateFALEntry($foundFALEntryWhichHasNoFilemetadata['uid'], $rowDamEntriesNotImported['uid']);
+								// create filemetadata entry
+								$this->damfalfileRepository->insertFALEntryMetadata($foundFALEntryWhichHasNoFilemetadata['uid'], $rowDamEntriesNotImported['uid'], $rowDamEntriesNotImported['l18n_parent']);
+							} else {
+								// update sotrage index should insert all files, so just update
+								// nothing should happen, because it should find sth before
+								//$this->damfalfileRepository->insertFalEntry($rowDamEntriesNotImported['uid']);
+							}
 						}
 					}
                 }
@@ -151,7 +191,7 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
         $txDamEntriesProgressArray = $this->damfalfileRepository->getProgressArray('tx_dam', "damalreadyexported = '1'", '');
         $this->view->assign('txDamEntriesProgressArray', $txDamEntriesProgressArray);
 	}
-
+	
 	/**
 	 * @param string $name
 	 * @return string
@@ -174,9 +214,10 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 	 * @param string $executeTTContentTestSubmit
 	 * @param string $thumbnailTest
      * @param string $rteFilelinkTest
+	 * @param string $pictureFilelinkTest
      * @return void
      */
-    public function referenceUpdateAction($tabInteger = 0, array $fieldnameToTablenameArray = array(), $executeTablenameMultiselect = '', $chosenTablenames = '', $executeReferenceUpdateSubmit = '', $chosenExtension = '', array $identifierArray = array(), $executeReferenceUpdateIdentifierSubmit = '', $executeTTContentTestSubmit = '', $thumbnailTest = '', $rteFilelinkTest = '') {
+    public function referenceUpdateAction($tabInteger = 0, array $fieldnameToTablenameArray = array(), $executeTablenameMultiselect = '', $chosenTablenames = '', $executeReferenceUpdateSubmit = '', $chosenExtension = '', array $identifierArray = array(), $executeReferenceUpdateIdentifierSubmit = '', $executeTTContentTestSubmit = '', $thumbnailTest = '', $rteFilelinkTest = '', $pictureFilelinkTest = '') {
 
 		// sets up the integer parameter for the tabs navigation
         $tabInteger = $this->backendSessionHandler->setOrGetSessionParameter($tabInteger, 'tabInteger');
@@ -267,7 +308,7 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 										} else {
 											$errorMessageArray[$counter]['message'] = 'noFALIdWasFoundInDAMTable';
 											$errorMessageArray[$counter]['tablename'] = $value[4] . ' ' . $value[0];
-											$errorMessageArray[$counter]['identifier'] = $value[1];
+											$errorMessageArray[$counter]['identifier'] = $value[1] . ' ' . $value[2];
 											$errorMessageArray[$counter]['uid_foreign'] = $rowMmRefInfo['uid_foreign'];
 											$errorMessageArray[$counter]['uid_local'] = $rowMmRefInfo['uid_local'];
 											$errorMarker = 2;
@@ -275,7 +316,7 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 									} else {
 										$errorMessageArray[$counter]['message'] = 'noLocalSourceFound or FALUid is 0';
 										$errorMessageArray[$counter]['tablename'] = $value[4] . ' ' . $value[0];
-										$errorMessageArray[$counter]['identifier'] = $value[1];
+										$errorMessageArray[$counter]['identifier'] = $value[1] . ' ' . $value[2];
 										$errorMessageArray[$counter]['uid_foreign'] = $rowMmRefInfo['uid_foreign'];
 										$errorMessageArray[$counter]['uid_local'] = $rowMmRefInfo['uid_local'];
 										$errorMarker = 2;
@@ -283,7 +324,7 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 								} else {
 									$errorMessageArray[$counter]['message'] = 'noForeignSourceFound';
 									$errorMessageArray[$counter]['tablename'] = $value[4] . ' ' . $value[0];
-									$errorMessageArray[$counter]['identifier'] = $value[1];
+									$errorMessageArray[$counter]['identifier'] = $value[1] . ' ' . $value[2];
 									$errorMessageArray[$counter]['uid_foreign'] = $rowMmRefInfo['uid_foreign'];
 									$errorMessageArray[$counter]['uid_local'] = $rowMmRefInfo['uid_local'];
 									$errorMarker = 2;
@@ -292,7 +333,7 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 					} else {
 						$errorMessageArray[$counter]['message'] = 'noFALValueFilled';
 						$errorMessageArray[$counter]['tablename'] = $value[4] . ' ' . $value[0];
-						$errorMessageArray[$counter]['identifier'] = $value[1];
+						$errorMessageArray[$counter]['identifier'] = $value[1] . ' ' . $value[2];
 						$errorMarker = 2;
 					}
 					$counter++;
@@ -314,16 +355,19 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 					} elseif ($rowMmRefTablenames['ident'] == 'tx_damfilelinks_filelinks') {
 						$stdValueForFALIdentifier = 'media';
 					} else {
-						$stdValueForFALIdentifier = '';
+						//$stdValueForFALIdentifier = '';
+						$stdValueForFALIdentifier = $rowMmRefTablenames['ident'];
 					}
 				} elseif ($rowMmRefTablenames['tablenames'] == 'pages') {
 					if ($rowMmRefTablenames['ident'] == 'tx_dampages_files') {
 						$stdValueForFALIdentifier = 'media';
 					} else {
-						$stdValueForFALIdentifier = '';
+						//$stdValueForFALIdentifier = '';
+						$stdValueForFALIdentifier = $rowMmRefTablenames['ident'];
 					}
 				} else {
-					$stdValueForFALIdentifier = '';
+					//$stdValueForFALIdentifier = '';
+					$stdValueForFALIdentifier = $rowMmRefTablenames['ident'];
 				}
 				$damIdents[] = array($rowMmRefTablenames['tablenames'], $rowMmRefTablenames['ident'], $stdValueForFALIdentifier);
 			}
@@ -421,6 +465,33 @@ class DamfalfileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionContr
 					);
 
 					$this->damfalfileRepository->updateTableEntry('tt_content', "uid = '" . $bodytextValue['uid'] . "'", $fieldsValues);
+				}
+
+			}
+			
+			if ($pictureFilelinkTest) {
+
+				$sysFileReferenceEntriesLinks = $this->damfalfileRepository->getArrayDataFromTable('uid, link', 'sys_file_reference', 'deleted <> 1 AND hidden <> 1 AND link IS NOT NULL', $groupBy = '', $orderBy = '', $limit = '');
+
+				foreach ($sysFileReferenceEntriesLinks as $linkValue) {
+
+					$falLinkSysFileReferenceLink = $linkValue['link'];
+					
+					preg_match_all("/media:([0-9]{1,})/",$falLinkSysFileReferenceLink,$matches);
+					
+					foreach ($matches[1] as $match) {
+						$rowDamInfo = $this->damfalfileRepository->selectOneRowQuery('falUid', 'tx_dam', "uid = '" . $match . "'");
+						$falLinkSysFileReferenceLink = str_replace('media:' . $match, 'media:' . $rowDamInfo['falUid'], $falLinkSysFileReferenceLink);
+					}
+					
+					$falLinkSysFileReferenceLink = str_replace('media', 'file', $falLinkSysFileReferenceLink);
+
+					$fieldsValues = array();
+					$fieldsValues = array(
+						'link' => $falLinkSysFileReferenceLink
+					);
+
+					$this->damfalfileRepository->updateTableEntry('sys_file_reference', "uid = '" . $linkValue['uid'] . "'", $fieldsValues);
 				}
 
 			}
