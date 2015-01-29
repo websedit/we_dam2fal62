@@ -9,34 +9,34 @@
 <![CDATA[
   jQuery(document).ready(function($) {
 
-	$('.checkboxTrigger').click(function() {
+	jQuery('.checkboxTrigger').click(function() {
 		
 		var idName = $($(this)).attr("id");
 		
-		if ($(this).attr('checked') !== undefined) {
-			$(this).attr('checked', false);
+		if (jQuery(this).attr('checked') !== undefined) {
+			jQuery(this).attr('checked', false);
 			// put in required class
-			$("."+idName).addClass( "required" );
+			jQuery("."+idName).addClass( "required" );
 			//alert("checked");
 		} else {
-			$(this).attr('checked', true);
+			jQuery(this).attr('checked', true);
 			// remove required class
-			$("."+idName).removeClass( "required" );
-			$("."+idName).removeClass( "error" );
+			jQuery("."+idName).removeClass( "required" );
+			jQuery("."+idName).removeClass( "error" );
 			
 			// remove label
-			var nameOfInput = $("."+idName).attr("name");
+			var nameOfInput = jQuery("."+idName).attr("name");
 			jQuery("label[for='"+nameOfInput+"']").addClass('hiding');
 
 		}
 	});
 
-    $('#identifierForm').validate();
-    $('#tablenameFieldnameForm').validate();
-    $( "#tabs" ).tabs({
+    jQuery('#identifierForm').validate();
+    jQuery('#tablenameFieldnameForm').validate();
+    jQuery( "#tabs" ).tabs({
       active: ]]>{tabInteger}<![CDATA[
     });
-	$( document ).tooltip();
+	jQuery( document ).tooltip();
 
   });
 ]]>

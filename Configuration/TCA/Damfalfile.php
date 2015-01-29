@@ -2,7 +2,7 @@
 if (!defined ('TYPO3_MODE')) {
 	die ('Access denied.');
 }
-
+/*
 $GLOBALS['TCA']['tx_wedam2fal62_domain_model_damfalfile'] = array(
 	'ctrl' => $GLOBALS['TCA']['tx_wedam2fal62_domain_model_damfalfile']['ctrl'],
 	'interface' => array(
@@ -105,3 +105,4 @@ $GLOBALS['TCA']['tx_wedam2fal62_domain_model_damfalfile'] = array(
 		
 	),
 );
+*/
